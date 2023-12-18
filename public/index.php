@@ -8,16 +8,12 @@ use Faker\Factory;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// Instantiate App
 $app = AppFactory::create();
 
-// Add error middleware
 $app->addErrorMiddleware(true, true, true);
 
-// GET маршрут
-$app->get('/', function (Request $request, Response $response) {
-    $response->getBody()->write('<a href="/hello/world">Try /hello/world</a>');
-    return $response;
+$app->get('/', function ($request, $response, $args) {
+    return $response->withHeader('Location', '/home')->withStatus(302);
 });
 
 // POST маршрут
@@ -57,7 +53,6 @@ $app->post('/', function (Request $request, Response $response) {
     return $response;
 });
 
-
 // DELETE маршрут
 $app->delete('/', function (Request $request, Response $response) {
     $response->getBody()->write('<h1>DELETE request</h1>');
@@ -75,6 +70,18 @@ $app->get('/hello/{name}', function (Request $request, Response $response, $args
 $app->get('/about', function ($request, $response) {
     $phpView = new PhpRenderer('../templates');
     return $phpView->render($response, 'about.phtml');
+});
+
+// GET маршрут для домашней страницы
+$app->get('/home', function ($request, $response) {
+    $phpView = new PhpRenderer('../templates');
+    return $phpView->render($response, 'home.phtml');
+});
+
+// GET маршрут для списка пользователей
+$app->get('/users', function (Request $request, Response $response) {
+    $phpView = new PhpRenderer('../templates');
+    return $phpView->render($response, 'users.phtml');
 });
 
 $app->run();
