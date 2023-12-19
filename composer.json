@@ -20,6 +20,9 @@
         "nyholm/psr7-server": "^1.1",
         "laminas/laminas-diactoros": "^3.3",
         "slim/php-view": "^3.2",
-        "fakerphp/faker": "^1.23"
+        "fakerphp/faker": "^1.23",
+        "twig/twig": "^3.8",
+        "slim/twig-view": "^3.3",
+        "php-di/php-di": "^7.0"
     }
 }
