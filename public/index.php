@@ -1,87 +1,94 @@
 <?php
-
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
-use Slim\Views\PhpRenderer;
+use Slim\Views\Twig;
+use Slim\Views\TwigMiddleware;
 use Faker\Factory;
+use DI\Container;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$app = AppFactory::create();
+$container = new Container();
+AppFactory::setContainer($container);
 
-$app->addErrorMiddleware(true, true, true);
-
-$app->get('/', function ($request, $response, $args) {
-    return $response->withHeader('Location', '/home')->withStatus(302);
+$container->set('view', function() {
+    return Twig::create(__DIR__ . '/../templates');
 });
 
-// POST маршрут
-$app->post('/', function (Request $request, Response $response) {
-    $data = $request->getParsedBody();
+$app = AppFactory::create();
 
-    // Check if the data is an array
-    if (!is_array($data)) {
-        $data = [];
-    }
+$app->add(TwigMiddleware::createFromContainer($app));
 
-    // Create an instance of Faker
+$view = $container->get('view');
+
+$app->get('/welcome', function (Request $request, Response $response, $args) use ($container) {
+    // Access the view from the container
+    $view = $container->get('view');
+    return $view->render($response, 'welcome.phtml');
+});
+
+$app->get('/api/users', function (Request $request, Response $response, $args) {
     $faker = Factory::create();
-
-    // Generate fake data
-    $fakeData = [
-        'name' => $faker->name,
-        'email' => $faker->email,
-        'address' => $faker->address,
-    ];
-
-    // Merge the data
-    $data = array_merge($data, $fakeData);
-
-    // Add more fake data
-    for ($i = 0; $i < 10; $i++) {
-        $data[] = [
+    $limit = $request->getQueryParams()['limit'] ?? 5;
+    $limit = min($limit, 10);
+    $users = [];
+    for ($i = 0; $i < $limit; $i++) {
+        $users[] = [
+            'id' => $i + 1,
             'name' => $faker->name,
             'email' => $faker->email,
-            'address' => $faker->address,
+            'image' => $faker->imageUrl
+        ];
+    }
+    $response->getBody()->write(json_encode($users));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->get('/api/users/{userId}', function (Request $request, Response $response, $args) {
+    $faker = Factory::create();
+    $user = [
+        'id' => $args['userId'],
+        'name' => $faker->name,
+        'email' => $faker->email,
+        'image' => $faker->imageUrl
+    ];
+    $response->getBody()->write(json_encode($user));
+    return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+});
+
+$app->delete('/api/users/{userId}', function (Request $request, Response $response, $args) {
+    return $response->withStatus(204);
+});
+
+$app->get('/users', function (Request $request, Response $response, $args) use ($container) {
+    $faker = Factory::create();
+    $limit = $request->getQueryParams()['limit'] ?? 5;
+    $limit = min($limit, 10);
+    $users = [];
+    for ($i = 0; $i < $limit; $i++) {
+        $users[] = [
+            'id' => $i + 1,
+            'name' => $faker->name,
+            'email' => $faker->email,
+            'image' => $faker->imageUrl
         ];
     }
 
-    // Encode the data as JSON
-    $response->getBody()->write(json_encode($data));
-
-    return $response;
+    $view = $container->get('view');
+    return $view->render($response, 'users.phtml', ['users' => $users]);
 });
 
-// DELETE маршрут
-$app->delete('/', function (Request $request, Response $response) {
-    $response->getBody()->write('<h1>DELETE request</h1>');
-    return $response;
-});
-
-// GET with dynamic route parameter
-$app->get('/hello/{name}', function (Request $request, Response $response, $args) {
-    $name = $args['name'];
-    $response->getBody()->write("Hello, $name");
-    return $response;
-});
-
-// GET with template rendering
-$app->get('/about', function ($request, $response) {
-    $phpView = new PhpRenderer('../templates');
-    return $phpView->render($response, 'about.phtml');
-});
-
-// GET маршрут для домашней страницы
-$app->get('/home', function ($request, $response) {
-    $phpView = new PhpRenderer('../templates');
-    return $phpView->render($response, 'home.phtml');
-});
-
-// GET маршрут для списка пользователей
-$app->get('/users', function (Request $request, Response $response) {
-    $phpView = new PhpRenderer('../templates');
-    return $phpView->render($response, 'users.phtml');
+$app->get('/users/{userId}', function (Request $request, Response $response, $args) use ($container) {
+    $faker = Factory::create();
+    $user = [
+        'id' => $args['userId'],
+        'name' => $faker->name,
+        'email' => $faker->email,
+        'image' => $faker->imageUrl
+    ];
+    $view = $container->get('view');
+    return $view->render($response, 'user.phtml', ['user' => $user]);
 });
 
 $app->run();
