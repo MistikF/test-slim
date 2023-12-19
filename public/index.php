@@ -22,8 +22,11 @@ $app->add(TwigMiddleware::createFromContainer($app));
 
 $view = $container->get('view');
 
+$app->get('/', function (Request $request, Response $response) {
+    return $response->withHeader('Location', '/welcome')->withStatus(302);
+});
+
 $app->get('/welcome', function (Request $request, Response $response, $args) use ($container) {
-    // Access the view from the container
     $view = $container->get('view');
     return $view->render($response, 'welcome.phtml');
 });
